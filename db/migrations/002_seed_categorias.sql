@@ -1,0 +1,18 @@
+-- ============================================================
+-- finza — seed de categorias padrão
+-- Execute após criar o primeiro usuário substituindo o UUID
+-- ============================================================
+
+-- Exemplo de uso:
+-- \set user_id 'cole-aqui-o-uuid-do-seu-usuario'
+--
+-- INSERT INTO categorias (user_id, nome, icone, limite_mensal) VALUES
+--   (:'user_id', 'Alimentação',   '🍽️',  600.00),
+--   (:'user_id', 'Transporte',    '🚗',  300.00),
+--   (:'user_id', 'Moradia',       '🏠',  900.00),
+--   (:'user_id', 'Saúde',         '💊',  200.00),
+--   (:'user_id', 'Lazer',         '🎬',  200.00),
+--   (:'user_id', 'Educação',      '📚',  150.00),
+--   (:'user_id', 'Vestuário',     '👕',  100.00),
+--   (:'user_id', 'Assinaturas',   '📱',  100.00),
+--   (:'user_id', 'Outros',        '💸',  NULL);
