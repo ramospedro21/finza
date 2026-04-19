@@ -33,7 +33,7 @@ router.get('/', async (req, res, next) => {
     const { total, qtd } = await getTotalMes(userId, mes);
     const porForma = await getGastosPorForma(userId, mes);
 
-    res.tson({ gastos, resumo: { total, qtd, por_forma: porForma } });
+    res.json({ gastos, resumo: { total, qtd, por_forma: porForma } });
   } catch (err) {
     next(err);
   }
@@ -44,7 +44,7 @@ router.post('/', async (req, res, next) => {
   try {
     const data = gastoSchema.parse(req.body);
     const gasto = await createGasto(data);
-    res.status(201).tson(gasto);
+    res.status(201).json(gasto);
   } catch (err) {
     next(err);
   }
@@ -59,7 +59,7 @@ router.put('/:id', async (req, res, next) => {
     const gasto = await updateGasto(req.params.id!, user_id, rest as never);
     if (!gasto) throw new NotFoundError('Gasto');
 
-    res.tson(gasto);
+    res.json(gasto);
   } catch (err) {
     next(err);
   }

@@ -26,7 +26,7 @@ router.get('/', async (req, res, next) => {
     const cartoes = await findCartoesByUserId(userId);
     const faturas = await getFaturasMesAtual(userId);
 
-    res.tson({ cartoes, faturas });
+    res.json({ cartoes, faturas });
   } catch (err) {
     next(err);
   }
@@ -37,7 +37,7 @@ router.post('/', async (req, res, next) => {
   try {
     const data = cartaoSchema.parse(req.body);
     const cartao = await createCartao(data);
-    res.status(201).tson(cartao);
+    res.status(201).json(cartao);
   } catch (err) {
     next(err);
   }
@@ -48,7 +48,7 @@ router.put('/:id', async (req, res, next) => {
   try {
     const cartao = await updateCartao(req.params.id!, req.body);
     if (!cartao) throw new NotFoundError('Cartão');
-    res.tson(cartao);
+    res.json(cartao);
   } catch (err) {
     next(err);
   }

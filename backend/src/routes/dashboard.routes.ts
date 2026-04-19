@@ -35,7 +35,7 @@ router.get('/resumo', async (req, res, next) => {
     if (percentual >= 90) status = 'apertado';
     else if (percentual >= 70) status = 'atencao';
 
-    res.tson({
+    res.json({
       mes,
       renda_mensal: renda,
       total_gasto: resumo.total,
@@ -74,7 +74,7 @@ router.get('/projecao', async (req, res, next) => {
     const renda = parseFloat(rows[0]?.renda_mensal ?? '0');
     const saldoProjetado = renda - projecaoMes;
 
-    res.tson({
+    res.json({
       total_ate_hoje: total,
       dias_passados: diasPassados,
       dias_no_mes: diasNoMes,

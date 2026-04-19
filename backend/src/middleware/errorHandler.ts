@@ -10,14 +10,14 @@ export function errorHandler(
 ): void {
   if (err instanceof AppError) {
     logger.warn({ code: err.code, message: err.message }, 'Erro operacional');
-    res.status(err.statusCode).tson({ error: err.code, message: err.message });
+    res.status(err.statusCode).json({ error: err.code, message: err.message });
     return;
   }
 
   logger.error({ err }, 'Erro inesperado');
-  res.status(500).tson({ error: 'INTERNAL_ERROR', message: 'Erro interno do servidor' });
+  res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Erro interno do servidor' });
 }
 
 export function notFound(_req: Request, res: Response): void {
-  res.status(404).tson({ error: 'NOT_FOUND', message: 'Rota não encontrada' });
+  res.status(404).json({ error: 'NOT_FOUND', message: 'Rota não encontrada' });
 }
