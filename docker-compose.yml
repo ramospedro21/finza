@@ -17,7 +17,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  evolution-api:
+    container_name: evolution_api
+    image: atendai/evolution-api:v1.8.2
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      AUTHENTICATION_API_KEY: B6D711FCDE4D4FD5936544120E713976
+      SERVER_URL: http://localhost:8080
+      DEL_INSTANCE: "false"
+      DATABASE_ENABLED: "false"
+      QRCODE_LIMIT: "30"
+    volumes:
+      - evolution_instances:/evolution/instances
 
 volumes:
   finza_pgdata:
+    driver: local
+  evolution_instances:
     driver: local

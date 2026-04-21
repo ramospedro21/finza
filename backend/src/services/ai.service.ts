@@ -54,7 +54,9 @@ export async function extrairGasto(mensagem: string): Promise<ExtracaoGasto> {
       .map((b) => b.text)
       .join('');
 
-    const parsed = JSON.parse(text) as ExtracaoGasto;
+    const clean = text.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(clean) as ExtracaoGasto;
+
     logger.debug({ mensagem, parsed }, 'IA extraiu dados da mensagem');
     return parsed;
   } catch (err) {

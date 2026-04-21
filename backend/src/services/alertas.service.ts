@@ -1,6 +1,7 @@
+// import { sendWhatsAppMessage, formatarAlerta } from './whatsapp.service.ts';
+import { sendTelegramMessage, formatarAlerta } from './telegram.service.ts';
 import { getTotalMes, getGastosPorCategoria } from '../repositories/gastos.repository.ts';
 import { getFaturasMesAtual } from '../repositories/cartoes.repository.ts';
-import { sendWhatsAppMessage, formatarAlerta } from './whatsapp.service.ts';
 import { logger } from '../utils/logger.ts';
 import type { User } from '../types/index.ts';
 
@@ -13,7 +14,7 @@ export async function verificarAlertas(user: User, whatsappGroupId: string): Pro
     const percentualRenda = Math.round((total / user.renda_mensal) * 100);
 
     if (percentualRenda >= 90) {
-      await sendWhatsAppMessage(
+      await sendTelegramMessage(
         whatsappGroupId,
         formatarAlerta('gasto_alto', {
           percentual: percentualRenda,
@@ -22,7 +23,7 @@ export async function verificarAlertas(user: User, whatsappGroupId: string): Pro
         }),
       );
     } else if (percentualRenda >= 70) {
-      await sendWhatsAppMessage(
+      await sendTelegramMessage(
         whatsappGroupId,
         formatarAlerta('gasto_alto', {
           percentual: percentualRenda,
@@ -36,7 +37,7 @@ export async function verificarAlertas(user: User, whatsappGroupId: string): Pro
     const faturas = await getFaturasMesAtual(user.id);
     for (const fatura of faturas) {
       if (fatura.percentual_limite >= 70) {
-        await sendWhatsAppMessage(
+        await sendTelegramMessage(
           whatsappGroupId,
           formatarAlerta('limite_cartao', {
             cartaoNome: fatura.cartao,
@@ -50,7 +51,7 @@ export async function verificarAlertas(user: User, whatsappGroupId: string): Pro
     const categorias = await getGastosPorCategoria(user.id, mes);
     for (const cat of categorias) {
       if (cat.limite_mensal && cat.total_gasto > cat.limite_mensal) {
-        await sendWhatsAppMessage(
+        await sendTelegramMessage(
           whatsappGroupId,
           formatarAlerta('categoria', { categoria: cat.categoria }),
         );

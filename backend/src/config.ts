@@ -5,10 +5,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DATABASE_URL: z.string().url(),
   ANTHROPIC_API_KEY: z.string().min(1),
-  EVOLUTION_API_URL: z.string().url(),
-  EVOLUTION_API_KEY: z.string().min(1),
-  EVOLUTION_INSTANCE: z.string().min(1),
-  WHATSAPP_GROUP_ID: z.string().min(1),
+  TELEGRAM_BOT_TOKEN: z.string().min(1),
+  TELEGRAM_GROUP_ID: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

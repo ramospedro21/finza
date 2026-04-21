@@ -31,8 +31,12 @@ async function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('unhandledRejection', (reason) => {
-  logger.error({ reason }, 'unhandledRejection');
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error({ 
+    reason,
+    stack: reason instanceof Error ? reason.stack : undefined,
+    promise: String(promise)
+  }, 'unhandledRejection');
   process.exit(1);
 });
 process.on('uncaughtException', (err) => {

@@ -1,28 +1,26 @@
 import { config } from '../config.ts';
 import { logger } from '../utils/logger.ts';
 
-const BASE_URL = `${config.EVOLUTION_API_URL}/message/sendText/${config.EVOLUTION_INSTANCE}`;
+const BASE_URL = `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}`;
 
-export async function sendWhatsAppMessage(to: string, text: string): Promise<void> {
+export async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
   try {
-    const response = await fetch(BASE_URL, {
+    const response = await fetch(`${BASE_URL}/sendMessage`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: config.EVOLUTION_API_KEY,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        number: to,
-        textMessage: { text },
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown',
       }),
     });
 
     if (!response.ok) {
       const body = await response.text();
-      logger.error({ status: response.status, body }, 'Erro ao enviar mensagem WhatsApp');
+      logger.error({ status: response.status, body }, 'Erro ao enviar mensagem Telegram');
     }
   } catch (err) {
-    logger.error({ err }, 'Falha na chamada à Evolution API');
+    logger.error({ err }, 'Falha na chamada à Telegram API');
   }
 }
 
@@ -60,7 +58,7 @@ export function formatarAlerta(tipo: 'gasto_alto' | 'limite_cartao' | 'categoria
 }): string {
   switch (tipo) {
     case 'gasto_alto':
-      return `🚨 *Atenção!* Você já gastou ${params.percentual}% da sua renda este mês (${params.totalGasto?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de ${params.renda?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}). Tome cuidado com os próximos gastos!`;
+      return `🚨 *Atenção!* Você já gastou ${params.percentual}% da sua renda este mês (${params.totalGasto?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de ${params.renda?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}). Tome cuidado!`;
     case 'limite_cartao':
       return `⚠️ O cartão *${params.cartaoNome}* está em *${params.percentual}%* do limite. Fique atento!`;
     case 'categoria':

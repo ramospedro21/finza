@@ -1,63 +1,60 @@
 import { extrairGasto } from './ai.service.ts';
-import { sendWhatsAppMessage, formatarRespostaGasto } from './whatsapp.service.ts';
-import { verificarAlertas } from './alertas.service.ts';
+import { sendTelegramMessage, formatarRespostaGasto } from './telegram.service.ts';
 import { findUserByWhatsappId, createUser } from '../repositories/users.repository.ts';
 import { findCartaoByNome, createCartao, getFaturasMesAtual } from '../repositories/cartoes.repository.ts';
 import { findCategoriaByNome, createCategoria, seedCategoriasDefault } from '../repositories/categorias.repository.ts';
 import { createGasto, getTotalMes, getTotalSemana } from '../repositories/gastos.repository.ts';
+import { verificarAlertas } from './alertas.service.ts';
 import { config } from '../config.ts';
 import { logger } from '../utils/logger.ts';
 import type { FormaPagamento } from '../types/index.ts';
 
-// Payload do webhook da Evolution API
-export interface EvolutionWebhookPayload {
-  event: string;
-  instance: string;
-  data: {
-    key: {
-      remoteJid: string;
-      fromMe: boolean;
-      id: string;
+export interface TelegramUpdate {
+  update_id: number;
+  message?: {
+    message_id: number;
+    from: {
+      id: number;
+      first_name: string;
+      username?: string;
     };
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: { text: string };
+    chat: {
+      id: number;
+      type: string;
+      title?: string;
     };
-    pushName?: string;
+    date: number;
+    text?: string;
   };
-  sender?: string;
 }
 
-export async function processarWebhook(payload: EvolutionWebhookPayload): Promise<void> {
-  const { event, data } = payload;
+export async function processarMensagemTelegram(update: TelegramUpdate): Promise<void> {
+  const message = update.message;
+  if (!message?.text) return;
 
-  if (event !== 'messages.upsert' || data.key.fromMe) return;
+  const chatId = String(message.chat.id);
+  const texto = message.text.trim();
 
-  const remoteJid = data.key.remoteJid;
+  // Filtra apenas o grupo configurado
+  if (chatId !== config.TELEGRAM_GROUP_ID) {
+    logger.debug({ chatId, expected: config.TELEGRAM_GROUP_ID }, 'Mensagem ignorada - chat diferente');
+    return;
+  }
 
-  // Filtra ANTES de qualquer processamento
-  if (remoteJid !== config.WHATSAPP_RESPONSE_ID) return;
+  // Ignora comandos
+  if (texto.startsWith('/')) return;
 
-  const texto =
-    data.message?.conversation ??
-    data.message?.extendedTextMessage?.text;
+  const telegramUserId = String(message.from.id);
+  const nomeRemetente = message.from.first_name;
 
-  if (!texto?.trim()) return;
-
-  const remetenteId = (payload as any).sender ?? 
-                      (data as any).participant ?? 
-                      data.key.remoteJid;
-
-  logger.info({ texto, remetenteId }, 'Mensagem recebida no grupo');
-
-  const nomeRemetente = data.pushName ?? 'Usuário';
+  logger.info({ texto, telegramUserId }, 'Mensagem recebida no grupo Telegram');
 
   // Busca ou cria usuário
-  let user = await findUserByWhatsappId(remetenteId);
+  let user = await findUserByWhatsappId(telegramUserId);
   if (!user) {
     user = await createUser({
       nome: nomeRemetente,
-      whatsapp_id: remetenteId,
+      whatsapp_id: telegramUserId,
       renda_mensal: 3000,
     });
     await seedCategoriasDefault(user.id);
@@ -66,7 +63,6 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
 
   // Extrai intenção com IA
   const extracao = await extrairGasto(texto);
-  logger.debug({ extracao }, 'Intenção extraída');
 
   switch (extracao.intencao) {
     case 'gasto': {
@@ -86,8 +82,8 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
           cartaoNome = cartao.nome;
           limiteCartao = cartao.limite;
         } else {
-          await sendWhatsAppMessage(
-            config.WHATSAPP_RESPONSE_ID,
+          await sendTelegramMessage(
+            config.TELEGRAM_GROUP_ID,
             `⚠️ Não encontrei o cartão "${cartao_nome}". Cadastre com: _adicionar cartão [nome] limite [valor] vencimento dia [dia]_`,
           );
           return;
@@ -97,7 +93,6 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
       // Resolve categoria
       let categoriaId: string | null = null;
       const categoria = await findCategoriaByNome(user.id, categoria_sugerida);
-      
       if (categoria) {
         categoriaId = categoria.id;
       } else {
@@ -106,7 +101,7 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
       }
 
       // Salva gasto
-      const gasto = await createGasto({
+      await createGasto({
         user_id: user.id,
         valor,
         descricao,
@@ -117,45 +112,29 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
         mensagem_original: texto,
       });
 
-      logger.info({ gastoId: gasto.id }, 'Gasto salvo no banco');
       // Busca fatura atualizada se for cartão
       if (cartaoId) {
         const faturas = await getFaturasMesAtual(user.id);
         const fatura = faturas.find((f) => f.cartao_id === cartaoId);
-        if (fatura) {
-          faturaAtual = fatura.fatura_atual;
-        }
+        if (fatura) faturaAtual = fatura.fatura_atual;
       }
 
-      // antes do sendWhatsAppMessage
-      logger.info({ to: config.WHATSAPP_RESPONSE_ID, msg: 'enviando resposta' }, 'Tentando enviar mensagem');
-      // Responde no grupo
-      await sendWhatsAppMessage(
-        config.WHATSAPP_RESPONSE_ID,
-        formatarRespostaGasto({
-          valor,
-          categoria: categoria_sugerida,
-          formaPagamento: forma_pagamento,
-          cartaoNome,
-          faturaAtual,
-          limite: limiteCartao,
-        }),
+      await sendTelegramMessage(
+        config.TELEGRAM_GROUP_ID,
+        formatarRespostaGasto({ valor, categoria: categoria_sugerida, formaPagamento: forma_pagamento, cartaoNome, faturaAtual, limite: limiteCartao }),
       );
 
-      // Verifica alertas
-      await verificarAlertas(user, config.WHATSAPP_RESPONSE_ID);
+      await verificarAlertas(user, config.TELEGRAM_GROUP_ID);
       break;
     }
 
     case 'cadastro_cartao': {
       if (!extracao.cadastro_cartao) return;
       const { nome, limite, vencimento_fatura } = extracao.cadastro_cartao;
-
       const cartao = await createCartao({ user_id: user.id, nome, limite, vencimento_fatura });
       const limiteStr = limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-      await sendWhatsAppMessage(
-        config.WHATSAPP_RESPONSE_ID,
+      await sendTelegramMessage(
+        config.TELEGRAM_GROUP_ID,
         `✅ Cartão *${cartao.nome}* cadastrado!\n💳 Limite: *${limiteStr}* | Vencimento: dia *${vencimento_fatura}*`,
       );
       break;
@@ -169,7 +148,7 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
         case 'resumo_semana': {
           const total = await getTotalSemana(user.id);
           const totalStr = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          await sendWhatsAppMessage(config.WHATSAPP_RESPONSE_ID, `📊 Você gastou *${totalStr}* essa semana.`);
+          await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `📊 Você gastou *${totalStr}* essa semana.`);
           break;
         }
         case 'resumo_mes': {
@@ -179,8 +158,8 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
           const pct = Math.round((total / user.renda_mensal) * 100);
           const saldo = user.renda_mensal - total;
           const saldoStr = saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          await sendWhatsAppMessage(
-            config.WHATSAPP_RESPONSE_ID,
+          await sendTelegramMessage(
+            config.TELEGRAM_GROUP_ID,
             `📊 *Resumo do mês:*\n💸 Gasto: *${totalStr}* (${qtd} lançamentos)\n📈 ${pct}% da renda (${rendaStr})\n💰 Saldo estimado: *${saldoStr}*`,
           );
           break;
@@ -188,7 +167,7 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
         case 'fatura_cartao': {
           const faturas = await getFaturasMesAtual(user.id);
           if (faturas.length === 0) {
-            await sendWhatsAppMessage(config.WHATSAPP_RESPONSE_ID, `Nenhum cartão cadastrado ainda.`);
+            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `Nenhum cartão cadastrado ainda.`);
             break;
           }
           const linhas = faturas.map((f) => {
@@ -196,7 +175,7 @@ export async function processarWebhook(payload: EvolutionWebhookPayload): Promis
             const limiteStr = f.limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             return `💳 *${f.cartao}*: ${faturaStr} / ${limiteStr} (${f.percentual_limite}%) — vence dia ${f.vencimento_fatura}`;
           });
-          await sendWhatsAppMessage(config.WHATSAPP_RESPONSE_ID, `📋 *Faturas do mês:*\n${linhas.join('\n')}`);
+          await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `📋 *Faturas do mês:*\n${linhas.join('\n')}`);
           break;
         }
       }
