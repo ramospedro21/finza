@@ -21,6 +21,10 @@ export function createApp() {
 
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.0' }));
 
+  // Adiciona direto no app.ts, antes das rotas
+  app.post('/test', (_req, res) => {
+    res.json({ ok: true });
+  });
   logger.info('Registrando rotas...');
 
   // Rotas públicas
