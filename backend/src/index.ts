@@ -10,11 +10,22 @@ const server = http.createServer(app);
 async function start() {
   await connectDB();
 
+  // Lista todas as rotas
+  const routes: string[] = [];
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) {
+      routes.push(middleware.route.path);
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) routes.push(handler.route.path);
+      });
+    }
+  });
+  logger.info({ routes }, 'Rotas registradas');
+
   server.listen(config.PORT, () => {
     logger.info(`🚀 Finza backend rodando na porta ${config.PORT} [${config.NODE_ENV}]`);
   });
-
-  server.setTimeout(30_000);
 }
 
 async function shutdown(signal: string) {
