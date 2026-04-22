@@ -28,19 +28,30 @@ export function createApp() {
   logger.info('Registrando rotas...');
 
   // Rotas públicas
-  app.use('/auth', authRoutes);
-  logger.info('auth ok');
-  
-  app.use('/telegram', telegramRoutes);
-  logger.info('telegram ok');
+  try {
+    app.use('/auth', authRoutes);
+    logger.info('auth ok');
+  } catch(e) { logger.error(e, 'auth failed'); }
 
-  // Rotas protegidas
-  app.use('/gastos', authMiddleware, gastosRoutes);
-  logger.info('gastos ok');
-  app.use('/cartoes', authMiddleware, cartoesRoutes);
-  logger.info('cartoes ok');
-  app.use('/dashboard', authMiddleware, dashboardRoutes);
-  logger.info('dashboard ok');
+  try {
+    app.use('/telegram', telegramRoutes);
+    logger.info('telegram ok');
+  } catch(e) { logger.error(e, 'telegram failed'); }
+
+  try {
+    app.use('/gastos', authMiddleware, gastosRoutes);
+    logger.info('gastos ok');
+  } catch(e) { logger.error(e, 'gastos failed'); }
+
+  try {
+    app.use('/cartoes', authMiddleware, cartoesRoutes);
+    logger.info('cartoes ok');
+  } catch(e) { logger.error(e, 'cartoes failed'); }
+
+  try {
+    app.use('/dashboard', authMiddleware, dashboardRoutes);
+    logger.info('dashboard ok');
+  } catch(e) { logger.error(e, 'dashboard failed'); }
 
   app.use(notFound);
   app.use(errorHandler);
