@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ nome: '', email: '', password: '', renda_mensal: 3000 });
+  const [form, setForm] = useState({ nome: '', email: '', password: '', renda_mensal: '' });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });

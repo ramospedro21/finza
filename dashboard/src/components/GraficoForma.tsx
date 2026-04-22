@@ -33,16 +33,22 @@ export function GraficoForma({ dados }: { dados: any[] }) {
   return (
     <Card>
       <CardTitle>Por Forma de Pagamento</CardTitle>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} margin={{ top: 4 }}>
-          <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-          <YAxis hide />
-          <Tooltip formatter={(v: number) => brl(v)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
-          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-            {data.map((d, i) => <Cell key={i} fill={COLORS[d.forma] ?? '#4ade80'} />)}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      {data.length === 0 ? (
+        <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>
+          Nenhum gasto registrado
+        </p>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={data} margin={{ top: 4 }}>
+            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
+            <YAxis hide />
+            <Tooltip formatter={(v: number) => brl(v)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+              {data.map((d, i) => <Cell key={i} fill={COLORS[d.forma] ?? '#4ade80'} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </Card>
   );
 }
