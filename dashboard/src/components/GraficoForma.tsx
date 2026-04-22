@@ -1,6 +1,6 @@
 'use client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Card, CardTitle } from './ui/Card.tsx';
+import { Card, CardTitle } from './ui/Card';
 
 const LABEL: Record<string, string> = {
   cartao_credito: '💳 Crédito',

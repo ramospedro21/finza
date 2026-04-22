@@ -1,5 +1,5 @@
-import { Card, CardTitle } from './ui/Card.tsx';
-import { StatusBadge } from './ui/StatusBadge.tsx';
+import { Card, CardTitle } from './ui/Card';
+import { StatusBadge } from './ui/StatusBadge';
 
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

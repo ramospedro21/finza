@@ -1,6 +1,6 @@
 'use client';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
-import { Card, CardTitle } from './ui/Card.tsx';
+import { Card, CardTitle } from './ui/Card';
 
 const COLORS = ['#4ade80','#34d399','#22d3ee','#818cf8','#f472b6','#fb923c','#facc15','#a78bfa','#60a5fa'];
 

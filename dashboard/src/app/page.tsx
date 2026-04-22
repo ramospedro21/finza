@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser, clearToken } from '../lib/auth';
 import { useDashboard } from '../hooks/useDashboard';
-import { ResumoGeral } from '../components/ResumoGeral.tsx';
-import { GraficoCategoria } from '../components/GraficoCategoria.tsx';
-import { GraficoForma } from '../components/GraficoForma.tsx';
-import { FaturasCartao } from '../components/FaturasCartao.tsx';
-import { Projecao } from '../components/Projecao.tsx';
-import { HistoricoGastos } from '../components/HistoricoGastos.tsx';
+import { ResumoGeral } from '../components/ResumoGeral';
+import { GraficoCategoria } from '../components/GraficoCategoria';
+import { GraficoForma } from '../components/GraficoForma';
+import { FaturasCartao } from '../components/FaturasCartao';
+import { Projecao } from '../components/Projecao';
+import { HistoricoGastos } from '../components/HistoricoGastos';
 
 function getMesAtual() {
   return new Date().toISOString().slice(0, 7);

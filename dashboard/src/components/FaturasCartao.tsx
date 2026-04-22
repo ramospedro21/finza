@@ -1,4 +1,4 @@
-import { Card, CardTitle } from './ui/Card.tsx';
+import { Card, CardTitle } from './ui/Card';
 
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
