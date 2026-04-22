@@ -22,7 +22,7 @@ export function Projecao({ projecao }: { projecao: any }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {[
           { label: 'Gasto até hoje', value: brl(projecao.total_ate_hoje) },
           { label: 'Média diária', value: brl(projecao.media_diaria) },

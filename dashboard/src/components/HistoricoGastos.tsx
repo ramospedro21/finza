@@ -37,7 +37,7 @@ export function HistoricoGastos({ gastos, onDelete }: { gastos: any[]; onDelete:
       <CardTitle>Histórico de Gastos</CardTitle>
 
       {/* Filtros */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row">
         <input
           type="text"
           placeholder="Buscar..."
@@ -59,9 +59,9 @@ export function HistoricoGastos({ gastos, onDelete }: { gastos: any[]; onDelete:
         </select>
       </div>
 
-      {/* Tabela */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      {/* Tabela — scroll horizontal no mobile */}
+      <div className="overflow-x-auto -mx-2 px-2">
+        <table className="w-full text-sm min-w-[500px]">
           <thead>
             <tr style={{ color: 'var(--text-muted)' }}>
               {['Data', 'Descrição', 'Categoria', 'Forma', 'Valor', ''].map((h) => (

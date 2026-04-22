@@ -4,36 +4,35 @@ services:
     container_name: finza-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-finza}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finza}
-      POSTGRES_DB: ${POSTGRES_DB:-finza}
+      POSTGRES_USER: finza
+      POSTGRES_PASSWORD: finza_secret
+      POSTGRES_DB: finza
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - finza_pgdata:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finza} -d ${POSTGRES_DB:-finza}"]
+      test: ["CMD-SHELL", "pg_isready -U finza -d finza"]
       interval: 10s
       timeout: 5s
       retries: 5
-  evolution-api:
-    container_name: evolution_api
-    image: atendai/evolution-api:v1.8.2
-    restart: always
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: finza-backend
+    restart: unless-stopped
     ports:
-      - "8080:8080"
-    environment:
-      AUTHENTICATION_API_KEY: B6D711FCDE4D4FD5936544120E713976
-      SERVER_URL: http://localhost:8080
-      DEL_INSTANCE: "false"
-      DATABASE_ENABLED: "false"
-      QRCODE_LIMIT: "30"
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
     volumes:
-      - evolution_instances:/evolution/instances
+      - ./backend/src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   finza_pgdata:
-    driver: local
-  evolution_instances:
     driver: local

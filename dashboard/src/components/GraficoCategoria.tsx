@@ -9,32 +9,42 @@ function brl(v: number) {
 }
 
 export function GraficoCategoria({ dados }: { dados: any[] }) {
-  const data = dados.map((d) => ({ name: `${d.icone} ${d.categoria}`, value: Number(d.total_gasto), limite: Number(d.limite_mensal ?? 0) }));
+  const data = dados.map((d) => ({ 
+    name: `${d.icone} ${d.categoria}`, 
+    value: Number(d.total_gasto), 
+    limite: Number(d.limite_mensal ?? 0) 
+  }));
 
   return (
     <Card>
       <CardTitle>Gastos por Categoria</CardTitle>
-      <div className="flex gap-6">
-        <ResponsiveContainer width="40%" height={220}>
-          <PieChart>
-            <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3}>
-              {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-            </Pie>
-            <Tooltip formatter={(v: number) => brl(v)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
-          </PieChart>
-        </ResponsiveContainer>
+      {data.length === 0 ? (
+        <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>
+          Nenhum gasto registrado
+        </p>
+      ) : (
+        <div className="flex flex-col gap-4 md:flex-row">
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3}>
+                {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip formatter={(v: number) => brl(v)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
+            </PieChart>
+          </ResponsiveContainer>
 
-        <ResponsiveContainer width="60%" height={220}>
-          <BarChart data={data} layout="vertical" margin={{ left: 8 }}>
-            <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={130} />
-            <Tooltip formatter={(v: number) => brl(v)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-              {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data} layout="vertical" margin={{ left: 8 }}>
+              <XAxis type="number" hide />
+              <YAxis type="category" dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={130} />
+              <Tooltip formatter={(v: number) => brl(v)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </Card>
   );
 }

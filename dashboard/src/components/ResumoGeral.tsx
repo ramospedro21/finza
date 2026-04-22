@@ -16,7 +16,8 @@ export function ResumoGeral({ resumo }: { resumo: any }) {
         <StatusBadge status={resumo.status} />
       </div>
 
-      <div className="grid grid-cols-3 gap-6 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
         <div>
           <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Gasto total</p>
           <p className="text-3xl font-display font-bold" style={{ color: 'var(--green)' }}>

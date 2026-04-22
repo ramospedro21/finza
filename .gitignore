@@ -1,5 +1,17 @@
-*/node_modules/
-.next/
-dist/
-.env
-*.log
+# Env files
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+
+# Node
+**/node_modules
+**/dist
+
+# Next.js
+dashboard/.next
+
+# Docker volumes
+finza_pgdata
+finza_evolution_instances
+finza_redis

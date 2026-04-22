@@ -38,7 +38,7 @@ export default function Home() {
   return (
     <main className="min-h-screen p-6 md:p-10" style={{ background: 'var(--bg)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex flex-col gap-3 mb-8 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-4xl font-display font-extrabold tracking-tight" style={{ color: 'var(--green)' }}>
             finza
@@ -48,17 +48,17 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <input
             type="month"
             value={mes}
             onChange={(e) => setMes(e.target.value)}
-            className="rounded-lg px-4 py-2 text-sm font-mono outline-none"
+            className="flex-1 rounded-lg px-4 py-2 text-sm font-mono outline-none"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
           />
           <button
             onClick={handleLogout}
-            className="text-xs px-3 py-2 rounded-lg transition-opacity opacity-60 hover:opacity-100"
+            className="text-xs px-3 py-2 rounded-lg transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap"
             style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}
           >
             Sair
