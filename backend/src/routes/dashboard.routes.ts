@@ -11,9 +11,8 @@ const router = Router();
 // GET /dashboard/resumo?user_id=...&mes=2026-04
 router.get('/resumo', async (req, res, next) => {
   try {
-    const userId = req.query.user_id as string;
+    const userId = (req as any).userId as string;
     const mes = (req.query.mes as string) ?? new Date().toISOString().slice(0, 7);
-    if (!userId) throw new ValidationError('user_id é obrigatório');
 
     const [resumo, porCategoria, porForma, faturas] = await Promise.all([
       getTotalMes(userId, mes),
@@ -55,8 +54,7 @@ router.get('/resumo', async (req, res, next) => {
 // GET /dashboard/projecao?user_id=...
 router.get('/projecao', async (req, res, next) => {
   try {
-    const userId = req.query.user_id as string;
-    if (!userId) throw new ValidationError('user_id é obrigatório');
+    const userId = (req as any).userId as string;
 
     const mes = new Date().toISOString().slice(0, 7);
     const hoje = new Date();

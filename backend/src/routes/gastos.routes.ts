@@ -26,8 +26,7 @@ const gastoSchema = z.object({
 router.get('/', async (req, res, next) => {
   try {
     const mes = (req.query.mes as string) ?? new Date().toISOString().slice(0, 7);
-    const userId = req.query.user_id as string;
-    if (!userId) throw new ValidationError('user_id é obrigatório');
+    const userId = (req as any).userId as string;
 
     const gastos = await findGastosByMes(userId, mes);
     const { total, qtd } = await getTotalMes(userId, mes);
@@ -68,8 +67,7 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /gastos/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    const userId = req.query.user_id as string;
-    if (!userId) throw new ValidationError('user_id é obrigatório');
+    const userId = (req as any).userId as string;
 
     const deleted = await deleteGasto(req.params.id!, userId);
     if (!deleted) throw new NotFoundError('Gasto');

@@ -67,3 +67,39 @@ export function formatarAlerta(tipo: 'gasto_alto' | 'limite_cartao' | 'categoria
       return '';
   }
 }
+export async function sendTelegramMessageGetId(chatId: string, text: string): Promise<number | null> {
+  try {
+    const response = await fetch(`${BASE_URL}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown',
+      }),
+    });
+
+    const data = await response.json() as any;
+    return data?.result?.message_id ?? null;
+  } catch (err) {
+    logger.error({ err }, 'Falha ao enviar mensagem Telegram');
+    return null;
+  }
+}
+
+export async function editTelegramMessage(chatId: string, messageId: number, text: string): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'Markdown',
+      }),
+    });
+  } catch (err) {
+    logger.error({ err }, 'Falha ao editar mensagem Telegram');
+  }
+}

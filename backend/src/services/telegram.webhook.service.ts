@@ -1,6 +1,6 @@
 import { extrairGasto } from './ai.service.ts';
-import { sendTelegramMessage, formatarRespostaGasto } from './telegram.service.ts';
-import { findUserByWhatsappId, createUser } from '../repositories/users.repository.ts';
+import { sendTelegramMessage, formatarRespostaGasto, sendTelegramMessageGetId, editTelegramMessage } from './telegram.service.ts';
+import { findUserByWhatsappId, createUser, findUserByEmail, linkTelegramToUser, findUserByTelegramId } from '../repositories/users.repository.ts';
 import { findCartaoByNome, createCartao, getFaturasMesAtual } from '../repositories/cartoes.repository.ts';
 import { findCategoriaByNome, createCategoria, seedCategoriasDefault } from '../repositories/categorias.repository.ts';
 import { createGasto, getTotalMes, getTotalSemana } from '../repositories/gastos.repository.ts';
@@ -35,30 +35,48 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
   const chatId = String(message.chat.id);
   const texto = message.text.trim();
 
-  // Filtra apenas o grupo configurado
   if (chatId !== config.TELEGRAM_GROUP_ID) {
     logger.debug({ chatId, expected: config.TELEGRAM_GROUP_ID }, 'Mensagem ignorada - chat diferente');
     return;
   }
 
-  // Ignora comandos
-  if (texto.startsWith('/')) return;
-
   const telegramUserId = String(message.from.id);
   const nomeRemetente = message.from.first_name;
 
+  if (texto.startsWith('/')) {
+    // Comando /vincular
+    if (texto.startsWith('/vincular')) {
+      const email = texto.split(' ')[1]?.trim();
+      if (!email) {
+        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, '❌ Use: /vincular seu@email.com');
+        return;
+      }
+
+      const userByEmail = await findUserByEmail(email);
+      if (!userByEmail) {
+        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `❌ Email *${email}* não encontrado. Crie sua conta no dashboard primeiro.`);
+        return;
+      }
+
+      await linkTelegramToUser(userByEmail.id, telegramUserId);
+      await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `✅ Telegram vinculado com sucesso à conta *${userByEmail.nome}*!`);
+      return;
+    }
+    return;
+  }
+
   logger.info({ texto, telegramUserId }, 'Mensagem recebida no grupo Telegram');
 
+  const processingMsgId = await sendTelegramMessageGetId(
+    config.TELEGRAM_GROUP_ID,
+    '⏳ _Processando..._'
+  );
+
   // Busca ou cria usuário
-  let user = await findUserByWhatsappId(telegramUserId);
+  let user = await findUserByTelegramId(telegramUserId);
   if (!user) {
-    user = await createUser({
-      nome: nomeRemetente,
-      whatsapp_id: telegramUserId,
-      renda_mensal: 3000,
-    });
-    await seedCategoriasDefault(user.id);
-    logger.info({ userId: user.id }, 'Novo usuário criado');
+    await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `👋 Olá *${nomeRemetente}*! Para começar, vincule sua conta com:\n/vincular seu@email.com`);
+    return;
   }
 
   // Extrai intenção com IA
@@ -119,10 +137,21 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
         if (fatura) faturaAtual = fatura.fatura_atual;
       }
 
-      await sendTelegramMessage(
-        config.TELEGRAM_GROUP_ID,
-        formatarRespostaGasto({ valor, categoria: categoria_sugerida, formaPagamento: forma_pagamento, cartaoNome, faturaAtual, limite: limiteCartao }),
-      );
+      const resposta = formatarRespostaGasto({
+        valor,
+        categoria: categoria_sugerida,
+        formaPagamento: forma_pagamento,
+        cartaoNome,
+        faturaAtual,
+        limite: limiteCartao,
+      });
+
+      // Edita a mensagem de processando com a resposta final
+      if (processingMsgId) {
+        await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+      } else {
+        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+      }
 
       await verificarAlertas(user, config.TELEGRAM_GROUP_ID);
       break;
@@ -130,13 +159,18 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
 
     case 'cadastro_cartao': {
       if (!extracao.cadastro_cartao) return;
+
       const { nome, limite, vencimento_fatura } = extracao.cadastro_cartao;
       const cartao = await createCartao({ user_id: user.id, nome, limite, vencimento_fatura });
       const limiteStr = limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      await sendTelegramMessage(
-        config.TELEGRAM_GROUP_ID,
-        `✅ Cartão *${cartao.nome}* cadastrado!\n💳 Limite: *${limiteStr}* | Vencimento: dia *${vencimento_fatura}*`,
-      );
+      const resposta = `✅ Cartão *${cartao.nome}* cadastrado!\n💳 Limite: *${limiteStr}* | Vencimento: dia *${vencimento_fatura}*`;
+      
+      if (processingMsgId) {
+        await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+      } else {
+        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+      }
+
       break;
     }
 
@@ -148,7 +182,14 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
         case 'resumo_semana': {
           const total = await getTotalSemana(user.id);
           const totalStr = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `📊 Você gastou *${totalStr}* essa semana.`);
+          const resposta = `📊 Você gastou *${totalStr}* essa semana.`
+
+          if (processingMsgId) {
+            await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+          } else {
+            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+          }
+
           break;
         }
         case 'resumo_mes': {
@@ -158,10 +199,14 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
           const pct = Math.round((total / user.renda_mensal) * 100);
           const saldo = user.renda_mensal - total;
           const saldoStr = saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          await sendTelegramMessage(
-            config.TELEGRAM_GROUP_ID,
-            `📊 *Resumo do mês:*\n💸 Gasto: *${totalStr}* (${qtd} lançamentos)\n📈 ${pct}% da renda (${rendaStr})\n💰 Saldo estimado: *${saldoStr}*`,
-          );
+          const resposta = `📊 *Resumo do mês:*\n💸 Gasto: *${totalStr}* (${qtd} lançamentos)\n📈 ${pct}% da renda (${rendaStr})\n💰 Saldo estimado: *${saldoStr}*`;
+
+          if (processingMsgId) {
+            await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+          } else {
+            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+          }
+
           break;
         }
         case 'fatura_cartao': {
@@ -175,14 +220,24 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
             const limiteStr = f.limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             return `💳 *${f.cartao}*: ${faturaStr} / ${limiteStr} (${f.percentual_limite}%) — vence dia ${f.vencimento_fatura}`;
           });
-          await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `📋 *Faturas do mês:*\n${linhas.join('\n')}`);
+
+          const resposta = `📋 *Faturas do mês:*\n${linhas.join('\n')}`;
+
+          if (processingMsgId) {
+            await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+          } else {
+            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+          }
+
           break;
         }
       }
       break;
     }
 
-    default:
-      logger.debug({ texto }, 'Mensagem não reconhecida, ignorando');
+  default: 
+    if (processingMsgId) {
+      await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, '🤔 _Não entendi. Tente: "gastei 50 reais no mercado pix"_');
+    }
   }
 }

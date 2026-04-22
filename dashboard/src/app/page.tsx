@@ -1,5 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { isAuthenticated, getUser, clearToken } from '../lib/auth.ts';
 import { useDashboard } from '../hooks/useDashboard.ts';
 import { ResumoGeral } from '../components/ResumoGeral.tsx';
 import { GraficoCategoria } from '../components/GraficoCategoria.tsx';
@@ -13,8 +15,25 @@ function getMesAtual() {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [mes, setMes] = useState(getMesAtual);
+  const [user, setUser] = useState<any>(null);
   const { resumo, projecao, gastos, loading, error, reload } = useDashboard(mes);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login');
+      return;
+    }
+    setUser(getUser());
+  }, [router]);
+
+  function handleLogout() {
+    clearToken();
+    router.push('/login');
+  }
+
+  if (!user) return null;
 
   return (
     <main className="min-h-screen p-6 md:p-10" style={{ background: 'var(--bg)' }}>
@@ -25,21 +44,28 @@ export default function Home() {
             finza
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            controle financeiro pessoal
+            olá, {user.nome} 👋
           </p>
         </div>
 
-        {/* Seletor de mês */}
-        <input
-          type="month"
-          value={mes}
-          onChange={(e) => setMes(e.target.value)}
-          className="rounded-lg px-4 py-2 text-sm font-mono outline-none"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
-        />
+        <div className="flex items-center gap-4">
+          <input
+            type="month"
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+            className="rounded-lg px-4 py-2 text-sm font-mono outline-none"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+          />
+          <button
+            onClick={handleLogout}
+            className="text-xs px-3 py-2 rounded-lg transition-opacity opacity-60 hover:opacity-100"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+          >
+            Sair
+          </button>
+        </div>
       </div>
 
-      {/* Estados */}
       {loading && (
         <div className="flex items-center justify-center h-64">
           <p className="font-mono text-sm animate-pulse" style={{ color: 'var(--text-muted)' }}>
@@ -56,22 +82,15 @@ export default function Home() {
 
       {!loading && resumo && (
         <div className="flex flex-col gap-6">
-          {/* Linha 1: Resumo geral */}
           <ResumoGeral resumo={resumo} />
-
-          {/* Linha 2: Gráficos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <GraficoCategoria dados={resumo.por_categoria ?? []} />
             <GraficoForma dados={resumo.por_forma ?? []} />
           </div>
-
-          {/* Linha 3: Faturas + Projeção */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FaturasCartao faturas={resumo.faturas ?? []} />
             {projecao && <Projecao projecao={projecao} />}
           </div>
-
-          {/* Linha 4: Histórico */}
           <HistoricoGastos gastos={gastos} onDelete={reload} />
         </div>
       )}

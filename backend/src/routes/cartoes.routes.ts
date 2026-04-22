@@ -20,8 +20,7 @@ const cartaoSchema = z.object({
 // GET /cartoes?user_id=...
 router.get('/', async (req, res, next) => {
   try {
-    const userId = req.query.user_id as string;
-    if (!userId) throw new ValidationError('user_id é obrigatório');
+    const userId = (req as any).userId as string;
 
     const cartoes = await findCartoesByUserId(userId);
     const faturas = await getFaturasMesAtual(userId);

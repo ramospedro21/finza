@@ -10,6 +10,9 @@ export interface User {
   id: string;
   nome: string;
   whatsapp_id: string;
+  email: string | null;
+  password_hash: string | null;
+  telegram_id: string | null;
   renda_mensal: number;
   created_at: Date;
   updated_at: Date;

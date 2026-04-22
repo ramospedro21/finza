@@ -21,7 +21,7 @@ export function useDashboard(mes: string) {
       setResumo(r);
       setProjecao(p);
       setGastos(g.gastos ?? []);
-    } catch (err) {
+    } catch {
       setError('Falha ao carregar dados. Verifique se o backend está rodando.');
     } finally {
       setLoading(false);
