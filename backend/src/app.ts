@@ -18,7 +18,7 @@ export function createApp() {
 
   app.use(express.json());
 
-  app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.0' }));
 
   // Rotas públicas
   app.use('/auth', authRoutes);
