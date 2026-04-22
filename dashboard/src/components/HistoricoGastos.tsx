@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Card, CardTitle } from './ui/Card.tsx';
-import { deleteGasto } from '../lib/api.ts';
+import { deleteGasto } from '../lib/api';
 
 const FORMA_LABEL: Record<string, string> = {
   cartao_credito: '💳 Crédito',

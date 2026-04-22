@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { fetchResumo, fetchProjecao, fetchGastos } from '../lib/api.ts';
+import { fetchResumo, fetchProjecao, fetchGastos } from '../lib/api';
 
 export function useDashboard(mes: string) {
   const [resumo, setResumo]     = useState<any>(null);

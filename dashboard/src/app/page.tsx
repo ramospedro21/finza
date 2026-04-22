@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, getUser, clearToken } from '../lib/auth.ts';
-import { useDashboard } from '../hooks/useDashboard.ts';
+import { isAuthenticated, getUser, clearToken } from '../lib/auth';
+import { useDashboard } from '../hooks/useDashboard';
 import { ResumoGeral } from '../components/ResumoGeral.tsx';
 import { GraficoCategoria } from '../components/GraficoCategoria.tsx';
 import { GraficoForma } from '../components/GraficoForma.tsx';
