@@ -12,10 +12,7 @@ import { logger } from './utils/logger.ts';
 export function createApp() {
   const app = express();
 
-  app.use(cors({
-    origin: ['*'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  }));
+  app.use(cors());
 
   app.use(express.json());
 
