@@ -78,6 +78,7 @@ export type OnboardingStep =
   | 'nome'
   | 'tipo_renda'
   | 'valor_renda'
+  | 'valor_renda_2'
   | 'dia_recebimento'
   | 'email'
   | 'concluido';
@@ -92,6 +93,7 @@ export interface OnboardingSession {
     nome?: string;
     tipo_renda?: TipoRenda;
     valor_renda?: number;
+    valor_renda_2?: number;
     dia_recebimento?: number;
     email?: string;
   };

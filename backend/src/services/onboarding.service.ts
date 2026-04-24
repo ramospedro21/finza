@@ -26,7 +26,7 @@ export async function processarOnboarding(
   let session = await findSession(telegramId);
 
   // Comando /start — inicia ou reinicia onboarding
-  if (texto === '/start' || !session) {
+  if (texto.startsWith('/start') || !session) {
     await upsertSession(telegramId, 'nome', {});
     await sendTelegramMessage(
       telegramId,
@@ -73,24 +73,76 @@ export async function processarOnboarding(
         await sendTelegramMessage(telegramId, '❌ Valor inválido. Digite apenas números. Ex: *3500*');
         return true;
       }
+
+      const tipo = session.data.tipo_renda;
+
+      // Quinzenal — pergunta os dois valores separados
+      if (tipo === 'quinzenal') {
+        await upsertSession(telegramId, 'valor_renda_2', { ...session.data, valor_renda: valor });
+        await sendTelegramMessage(
+          telegramId,
+          `💰 Primeiro recebimento: *R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}* ✅\n\nQual o valor do segundo recebimento?\nEx: *1500*`,
+        );
+        return true;
+      }
+
       await upsertSession(telegramId, 'dia_recebimento', { ...session.data, valor_renda: valor });
+
+      const perguntaDia = tipo === 'multipla'
+        ? `💰 R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ✅\n\nEm quais dias do mês você recebe?\nEx: *5 e 20* ou *5, 15, 25*`
+        : `💰 R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ✅\n\nEm qual dia do mês você recebe?\nEx: *5*`;
+
+      await sendTelegramMessage(telegramId, perguntaDia);
+      return true;
+    }
+
+    case 'valor_renda_2': {
+      const valor2 = parseFloat(texto.replace(',', '.').replace(/[^0-9.]/g, ''));
+      if (isNaN(valor2) || valor2 <= 0) {
+        await sendTelegramMessage(telegramId, '❌ Valor inválido. Ex: *1500*');
+        return true;
+      }
+      await upsertSession(telegramId, 'dia_recebimento', { ...session.data, valor_renda_2: valor2 });
       await sendTelegramMessage(
         telegramId,
-        `💰 R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ✅\n\nEm qual dia do mês você recebe?\nEx: *5*`,
+        `💰 Segundo recebimento: *R$ ${valor2.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}* ✅\n\nEm quais dias você recebe?\nEx: *5 e 20*`,
       );
       return true;
     }
 
     case 'dia_recebimento': {
-      const dia = parseInt(texto.trim());
-      if (isNaN(dia) || dia < 1 || dia > 31) {
-        await sendTelegramMessage(telegramId, '❌ Dia inválido. Digite um número entre 1 e 31:');
+      const tipo = session.data.tipo_renda;
+
+      // Extrai todos os números da mensagem
+      const dias = texto.match(/\d+/g)?.map(Number).filter(d => d >= 1 && d <= 31);
+
+      if (!dias || dias.length === 0) {
+        await sendTelegramMessage(telegramId, '❌ Dia inválido. Ex: *5* ou *5 e 20*');
         return true;
       }
-      await upsertSession(telegramId, 'email', { ...session.data, dia_recebimento: dia });
+
+      // Quinzenal precisa de exatamente 2 dias
+      if (tipo === 'quinzenal' && dias.length !== 2) {
+        await sendTelegramMessage(telegramId, '❌ Para renda quinzenal informe exatamente 2 dias. Ex: *5 e 20*');
+        return true;
+      }
+
+      await upsertSession(telegramId, 'email', { ...session.data, dias_recebimento: dias });
+
+      // Monta resumo
+      const valor1 = session.data.valor_renda!;
+      const valor2 = session.data.valor_renda_2;
+      let resumo = '';
+
+      if (tipo === 'quinzenal' && valor2) {
+        resumo = `📅 Dia *${dias[0]}*: R$ ${valor1.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n📅 Dia *${dias[1]}*: R$ ${valor2.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+      } else {
+        resumo = dias.map(d => `📅 Dia *${d}*`).join('\n');
+      }
+
       await sendTelegramMessage(
         telegramId,
-        `📅 Dia *${dia}* ✅\n\nQuase lá! Qual é o seu email para acessar o dashboard?`,
+        `${resumo}\n\n✅ Perfeito! Qual é o seu email para acessar o dashboard?`,
       );
       return true;
     }

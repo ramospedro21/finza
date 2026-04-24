@@ -8,8 +8,8 @@ export async function sendSetupEmail(to: string, nome: string, token: string): P
   const link = `${config.DASHBOARD_URL}/auth/setup?token=${token}`;
 
   try {
-    await resend.emails.send({
-      from: 'Finza <noreply@seudominio.com>',
+    const response = await resend.emails.send({
+      from: 'Finza <noreply@resend.dev>',
       to,
       subject: '🪙 Configure sua senha — Finza',
       html: `
@@ -40,7 +40,7 @@ export async function sendSetupEmail(to: string, nome: string, token: string): P
       `,
     });
 
-    logger.info({ to }, 'Email de setup enviado');
+    logger.info({ response }, 'Email de setup enviado');
   } catch (err) {
     logger.error({ err }, 'Erro ao enviar email de setup');
   }
