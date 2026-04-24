@@ -21,8 +21,6 @@ async function start() {
       });
     }
   });
-  logger.info({ routes }, 'Rotas registradas');
-
   server.listen(config.PORT, () => {
     logger.info(`🚀 Finza backend rodando na porta ${config.PORT} [${config.NODE_ENV}]`);
   });

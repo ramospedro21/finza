@@ -5,6 +5,7 @@ import { findCartaoByNome, createCartao, getFaturasMesAtual } from '../repositor
 import { findCategoriaByNome, createCategoria, seedCategoriasDefault } from '../repositories/categorias.repository.ts';
 import { createGasto, getTotalMes, getTotalSemana } from '../repositories/gastos.repository.ts';
 import { verificarAlertas } from './alertas.service.ts';
+import { processarOnboarding } from './onboarding.service.ts';
 import { config } from '../config.ts';
 import { logger } from '../utils/logger.ts';
 import type { FormaPagamento } from '../types/index.ts';
@@ -32,53 +33,52 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
   const message = update.message;
   if (!message?.text) return;
 
+  // Apenas conversas privadas
+  if (message.chat.type !== 'private') return;
+
   const chatId = String(message.chat.id);
   const texto = message.text.trim();
+  const telegramUserId = chatId; // em privado, chat.id === user.id
+  console.log(`Mensagem recebida do Telegram: ${texto} (de ${telegramUserId})`);
 
-  if (chatId !== config.TELEGRAM_GROUP_ID) {
-    logger.debug({ chatId, expected: config.TELEGRAM_GROUP_ID }, 'Mensagem ignorada - chat diferente');
-    return;
-  }
+  const processingMsgId = await sendTelegramMessageGetId(
+    chatId,
+    '⏳ _Processando..._'
+  );
 
-  const telegramUserId = String(message.from.id);
-  const nomeRemetente = message.from.first_name;
+  // Tenta processar onboarding primeiro
+  const emOnboarding = await processarOnboarding(telegramUserId, texto);
+  if (emOnboarding) return;
 
+  // Ignora comandos não reconhecidos
   if (texto.startsWith('/')) {
-    // Comando /vincular
     if (texto.startsWith('/vincular')) {
       const email = texto.split(' ')[1]?.trim();
       if (!email) {
-        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, '❌ Use: /vincular seu@email.com');
+        await sendTelegramMessage(chatId, '❌ Use: /vincular seu@email.com');
         return;
       }
 
       const userByEmail = await findUserByEmail(email);
       if (!userByEmail) {
-        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `❌ Email *${email}* não encontrado. Crie sua conta no dashboard primeiro.`);
+        await sendTelegramMessage(chatId, `❌ Email *${email}* não encontrado. Crie sua conta no dashboard primeiro.`);
         return;
       }
 
       await linkTelegramToUser(userByEmail.id, telegramUserId);
-      await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `✅ Telegram vinculado com sucesso à conta *${userByEmail.nome}*!`);
+      await sendTelegramMessage(chatId, `✅ Telegram vinculado com sucesso à conta *${userByEmail.nome}*!`);
       return;
     }
     return;
   }
 
-  logger.info({ texto, telegramUserId }, 'Mensagem recebida no grupo Telegram');
-
-  const processingMsgId = await sendTelegramMessageGetId(
-    config.TELEGRAM_GROUP_ID,
-    '⏳ _Processando..._'
-  );
-
-  // Busca ou cria usuário
+  // Busca usuário já cadastrado
   let user = await findUserByTelegramId(telegramUserId);
   if (!user) {
-    await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `👋 Olá *${nomeRemetente}*! Para começar, vincule sua conta com:\n/vincular seu@email.com`);
+    await sendTelegramMessage(chatId, '👋 Para começar, mande /start para criar sua conta!');
     return;
   }
-
+  
   // Extrai intenção com IA
   const extracao = await extrairGasto(texto);
 
@@ -101,7 +101,7 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
           limiteCartao = cartao.limite;
         } else {
           await sendTelegramMessage(
-            config.TELEGRAM_GROUP_ID,
+            chatId,
             `⚠️ Não encontrei o cartão "${cartao_nome}". Cadastre com: _adicionar cartão [nome] limite [valor] vencimento dia [dia]_`,
           );
           return;
@@ -148,12 +148,12 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
 
       // Edita a mensagem de processando com a resposta final
       if (processingMsgId) {
-        await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+        await editTelegramMessage(chatId, processingMsgId, resposta);
       } else {
-        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+        await sendTelegramMessage(chatId, resposta);
       }
 
-      await verificarAlertas(user, config.TELEGRAM_GROUP_ID);
+      await verificarAlertas(user, chatId);
       break;
     }
 
@@ -166,9 +166,9 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
       const resposta = `✅ Cartão *${cartao.nome}* cadastrado!\n💳 Limite: *${limiteStr}* | Vencimento: dia *${vencimento_fatura}*`;
       
       if (processingMsgId) {
-        await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+        await editTelegramMessage(chatId, processingMsgId, resposta);
       } else {
-        await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+        await sendTelegramMessage(chatId, resposta);
       }
 
       break;
@@ -185,9 +185,9 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
           const resposta = `📊 Você gastou *${totalStr}* essa semana.`
 
           if (processingMsgId) {
-            await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+            await editTelegramMessage(chatId, processingMsgId, resposta);
           } else {
-            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+            await sendTelegramMessage(chatId, resposta);
           }
 
           break;
@@ -202,9 +202,9 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
           const resposta = `📊 *Resumo do mês:*\n💸 Gasto: *${totalStr}* (${qtd} lançamentos)\n📈 ${pct}% da renda (${rendaStr})\n💰 Saldo estimado: *${saldoStr}*`;
 
           if (processingMsgId) {
-            await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+            await editTelegramMessage(chatId, processingMsgId, resposta);
           } else {
-            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+            await sendTelegramMessage(chatId, resposta);
           }
 
           break;
@@ -212,7 +212,7 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
         case 'fatura_cartao': {
           const faturas = await getFaturasMesAtual(user.id);
           if (faturas.length === 0) {
-            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, `Nenhum cartão cadastrado ainda.`);
+            await sendTelegramMessage(chatId, `Nenhum cartão cadastrado ainda.`);
             break;
           }
           const linhas = faturas.map((f) => {
@@ -224,9 +224,9 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
           const resposta = `📋 *Faturas do mês:*\n${linhas.join('\n')}`;
 
           if (processingMsgId) {
-            await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, resposta);
+            await editTelegramMessage(chatId, processingMsgId, resposta);
           } else {
-            await sendTelegramMessage(config.TELEGRAM_GROUP_ID, resposta);
+            await sendTelegramMessage(chatId, resposta);
           }
 
           break;
@@ -237,7 +237,7 @@ export async function processarMensagemTelegram(update: TelegramUpdate): Promise
 
   default: 
     if (processingMsgId) {
-      await editTelegramMessage(config.TELEGRAM_GROUP_ID, processingMsgId, '🤔 _Não entendi. Tente: "gastei 50 reais no mercado pix"_');
+      await editTelegramMessage(chatId, processingMsgId, '🤔 _Não entendi. Tente: "gastei 50 reais no mercado pix"_');
     }
   }
 }

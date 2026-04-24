@@ -74,6 +74,48 @@ export interface ExtracaoGasto {
   };
 }
 
+export type OnboardingStep =
+  | 'nome'
+  | 'tipo_renda'
+  | 'valor_renda'
+  | 'valor_renda_2'
+  | 'dia_recebimento'
+  | 'email'
+  | 'concluido';
+
+export type TipoRenda = 'fixa' | 'variavel' | 'quinzenal' | 'semanal' | 'multipla';
+
+export interface OnboardingSession {
+  id: string;
+  telegram_id: string;
+  step: OnboardingStep;
+  data: {
+    nome?: string;
+    tipo_renda?: TipoRenda;
+    valor_renda?: number;
+    valor_renda_2?: number;
+    dia_recebimento?: number;
+    email?: string;
+  };
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Atualiza User
+export interface User {
+  id: string;
+  nome: string;
+  whatsapp_id: string;
+  email: string | null;
+  password_hash: string | null;
+  telegram_id: string | null;
+  setup_token: string | null;
+  setup_token_expires_at: Date | null;
+  renda_mensal: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 // Views do banco
 export interface GastoPorCategoria {
   user_id: string;
