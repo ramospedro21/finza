@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { findUserByEmail, createUserWithEmail } from '../repositories/users.repository.ts';
+import { findUserByEmail, createUserWithEmail, findUserBySetupToken, setUserPassword } from '../repositories/users.repository.ts';
 import { seedCategoriasDefault } from '../repositories/categorias.repository.ts';
 import { generateToken, hashPassword, comparePassword } from '../utils/auth.ts';
 import { ValidationError } from '../utils/errors.ts';
@@ -77,6 +77,49 @@ router.get('/me', async (req, res, next) => {
       [userId],
     );
     res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /auth/verify-token?token=xxx
+router.get('/verify-token', async (req, res, next) => {
+  try {
+    const token = req.query.token as string;
+    if (!token) {
+      res.status(400).json({ error: 'Token não fornecido' });
+      return;
+    }
+    const user = await findUserBySetupToken(token);
+    if (!user) {
+      res.status(404).json({ error: 'Token inválido ou expirado' });
+      return;
+    }
+    res.json({ valid: true, nome: user.nome });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /auth/setup
+router.post('/setup', async (req, res, next) => {
+  try {
+    const { token, password } = z.object({
+      token: z.string().min(1),
+      password: z.string().min(6),
+    }).parse(req.body);
+
+    const user = await findUserBySetupToken(token);
+    if (!user) {
+      res.status(400).json({ error: 'Token inválido ou expirado' });
+      return;
+    }
+
+    const password_hash = await hashPassword(password);
+    await setUserPassword(user.id, password_hash);
+
+    const jwtToken = generateToken(user.id);
+    res.json({ token: jwtToken, user: { id: user.id, nome: user.nome, email: user.email } });
   } catch (err) {
     next(err);
   }

@@ -7,6 +7,8 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1),
   TELEGRAM_BOT_TOKEN: z.string().min(1),
   TELEGRAM_GROUP_ID: z.string().min(1),
+  RESEND_API_KEY: z.string().min(1),
+  DASHBOARD_URL: z.string().url(),
 });
 
 const parsed = envSchema.safeParse(process.env);
